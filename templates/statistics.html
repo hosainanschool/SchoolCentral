@@ -1,0 +1,368 @@
+{% extends "base.html" %}
+
+{% block title %}الإحصائيات - نظام إدارة المدرسة{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4">
+            <i class="fas fa-chart-bar me-2"></i>
+            الإحصائيات والتحليلات - {{ month_name }}
+        </h2>
+    </div>
+</div>
+
+<!-- Monthly Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h3>{{ "%.1f"|format(monthly_stats.attendance_rate) }}%</h3>
+                        <p class="mb-0">نسبة الحضور</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-percentage fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h3>{{ monthly_stats.present_count }}</h3>
+                        <p class="mb-0">أيام حضور</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-user-check fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card bg-danger text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h3>{{ monthly_stats.absent_count }}</h3>
+                        <p class="mb-0">أيام غياب</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-user-times fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h3>{{ monthly_stats.late_count }}</h3>
+                        <p class="mb-0">حالات تأخير</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-clock fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-line me-2"></i>
+                    اتجاهات الحضور السنوية
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="attendanceChart" height="400"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    التوزيع السلوكي (آخر 6 شهور)
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="behaviorChart" height="400"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Additional Statistics -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-graduation-cap me-2"></i>
+                    توزيع الطلاب حسب الصف
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if grades %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>الصف</th>
+                                    <th>عدد الطلاب</th>
+                                    <th>النسبة</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% set total_students = grades|sum(attribute='1') %}
+                                {% for grade, count in grades %}
+                                    <tr>
+                                        <td>{{ grade }}</td>
+                                        <td>{{ count }}</td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <span class="me-2">{{ "%.1f"|format((count/total_students*100) if total_students > 0 else 0) }}%</span>
+                                                <div class="progress flex-grow-1" style="height: 8px;">
+                                                    <div class="progress-bar bg-primary" 
+                                                         style="width: {{ (count/total_students*100) if total_students > 0 else 0 }}%"></div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center">لا توجد بيانات متاحة</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-star me-2"></i>
+                    أفضل 10 طلاب (السلوك الإيجابي)
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if top_positive_students %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>الترتيب</th>
+                                    <th>اسم الطالب</th>
+                                    <th>التقارير الإيجابية</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for student in top_positive_students %}
+                                    <tr>
+                                        <td>
+                                            {% if loop.index <= 3 %}
+                                                <i class="fas fa-medal text-warning"></i>
+                                            {% endif %}
+                                            {{ loop.index }}
+                                        </td>
+                                        <td>{{ student.name }}</td>
+                                        <td>
+                                            <span class="badge bg-success">{{ student.positive_count }}</span>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center">لا توجد بيانات متاحة</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Attendance by Grade -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>
+                    نسب الحضور حسب الصف (الشهر الحالي)
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if attendance_by_grade %}
+                    <div class="row">
+                        {% for grade_data in attendance_by_grade %}
+                            <div class="col-md-4 mb-3">
+                                <div class="card border">
+                                    <div class="card-body text-center">
+                                        <h5>{{ grade_data.grade }}</h5>
+                                        {% set attendance_rate = (grade_data.present_count / grade_data.total_records * 100) if grade_data.total_records > 0 else 0 %}
+                                        <div class="mb-2">
+                                            <div class="progress mx-auto" style="width: 100px; height: 100px; border-radius: 50%; position: relative;">
+                                                <svg width="100" height="100" style="transform: rotate(-90deg);">
+                                                    <circle cx="50" cy="50" r="40" fill="none" stroke="#dee2e6" stroke-width="8"/>
+                                                    <circle cx="50" cy="50" r="40" fill="none" stroke="#0d6efd" 
+                                                            stroke-width="8" stroke-linecap="round"
+                                                            stroke-dasharray="{{ 251.2 * attendance_rate / 100 }} 251.2"/>
+                                                </svg>
+                                                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+                                                    <strong>{{ "%.1f"|format(attendance_rate) }}%</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <p class="mb-0">
+                                            <small class="text-muted">
+                                                {{ grade_data.present_count }} من {{ grade_data.total_records }} سجل
+                                            </small>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center">لا توجد بيانات حضور متاحة لهذا الشهر</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Attendance Chart
+        const attendanceCtx = document.getElementById('attendanceChart').getContext('2d');
+        
+        // Fetch attendance data via API
+        fetch(`/api/attendance_chart_data?year={{ current_year }}`)
+            .then(response => response.json())
+            .then(data => {
+                new Chart(attendanceCtx, {
+                    type: 'line',
+                    data: {
+                        labels: data.map(item => item.month),
+                        datasets: [{
+                            label: 'نسبة الحضور',
+                            data: data.map(item => item.attendance_rate),
+                            borderColor: '#198754',
+                            backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                            tension: 0.4
+                        }, {
+                            label: 'نسبة الغياب',
+                            data: data.map(item => item.absence_rate),
+                            borderColor: '#dc3545',
+                            backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: {
+                                    callback: function(value) {
+                                        return value + '%';
+                                    }
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top'
+                            }
+                        }
+                    }
+                });
+            })
+            .catch(error => {
+                console.error('Error loading attendance data:', error);
+                attendanceCtx.canvas.parentElement.innerHTML = '<p class="text-center text-muted">خطأ في تحميل البيانات</p>';
+            });
+        
+        // Behavior Chart
+        const behaviorCtx = document.getElementById('behaviorChart').getContext('2d');
+        
+        fetch('/api/behavior_chart_data?months=6')
+            .then(response => response.json())
+            .then(data => {
+                const months = data.months || [];
+                const behaviorData = data.data || {};
+                
+                new Chart(behaviorCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: months.map(month => {
+                            const date = new Date(month + '-01');
+                            return date.toLocaleDateString('ar', { year: 'numeric', month: 'long' });
+                        }),
+                        datasets: [{
+                            label: 'إيجابي',
+                            data: months.map(month => behaviorData[month]?.positive || 0),
+                            backgroundColor: '#198754'
+                        }, {
+                            label: 'سلبي',
+                            data: months.map(month => behaviorData[month]?.negative || 0),
+                            backgroundColor: '#dc3545'
+                        }, {
+                            label: 'محايد',
+                            data: months.map(month => behaviorData[month]?.neutral || 0),
+                            backgroundColor: '#6c757d'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: {
+                                stacked: true
+                            },
+                            y: {
+                                stacked: true,
+                                beginAtZero: true
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top'
+                            }
+                        }
+                    }
+                });
+            })
+            .catch(error => {
+                console.error('Error loading behavior data:', error);
+                behaviorCtx.canvas.parentElement.innerHTML = '<p class="text-center text-muted">خطأ في تحميل البيانات</p>';
+            });
+    });
+</script>
+{% endblock %}

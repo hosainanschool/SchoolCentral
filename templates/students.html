@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+
+{% block title %}الطلاب - نظام إدارة المدرسة{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4">
+            <i class="fas fa-user-graduate me-2"></i>
+            إدارة الطلاب
+        </h2>
+    </div>
+</div>
+
+<!-- Search and Add Controls -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-search me-2"></i>
+                    البحث عن الطلاب
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="GET">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">اسم الطالب</label>
+                            <input type="text" name="student_name" class="form-control" 
+                                   value="{{ request.args.get('student_name', '') }}" 
+                                   placeholder="ابحث بالاسم">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">الصف</label>
+                            <input type="text" name="grade" class="form-control" 
+                                   value="{{ request.args.get('grade', '') }}" 
+                                   placeholder="الصف">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">الفصل</label>
+                            <input type="text" name="class_name" class="form-control" 
+                                   value="{{ request.args.get('class_name', '') }}" 
+                                   placeholder="الفصل">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search me-2"></i>
+                                بحث
+                            </button>
+                            <a href="{{ url_for('students') }}" class="btn btn-secondary">
+                                <i class="fas fa-times me-2"></i>
+                                مسح
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-plus me-2"></i>
+                    إجراءات
+                </h5>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-success w-100 mb-2" data-bs-toggle="modal" data-bs-target="#addStudentModal">
+                    <i class="fas fa-user-plus me-2"></i>
+                    إضافة طالب جديد
+                </button>
+                <div class="text-center">
+                    <strong>إجمالي الطلاب: {{ students|length }}</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Students List -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-list me-2"></i>
+                    قائمة الطلاب
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if students %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>رقم الطالب</th>
+                                    <th>الاسم</th>
+                                    <th>الصف</th>
+                                    <th>الفصل</th>
+                                    <th>ولي الأمر</th>
+                                    <th>الهاتف</th>
+                                    <th>تاريخ التسجيل</th>
+                                    <th>الحالة</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for student in students %}
+                                    <tr>
+                                        <td>{{ student.student_id }}</td>
+                                        <td>
+                                            <strong>{{ student.name }}</strong>
+                                            {% if student.birth_date %}
+                                                <br><small class="text-muted">{{ student.birth_date.strftime('%Y-%m-%d') }}</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ student.grade }}</td>
+                                        <td>{{ student.class_name }}</td>
+                                        <td>{{ student.parent_name or '-' }}</td>
+                                        <td>{{ student.parent_phone or '-' }}</td>
+                                        <td>{{ student.enrollment_date.strftime('%Y-%m-%d') if student.enrollment_date else '-' }}</td>
+                                        <td>
+                                            {% if student.is_active %}
+                                                <span class="badge bg-success">نشط</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">غير نشط</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary" title="عرض التفاصيل" 
+                                                        onclick="viewStudent({{ student.id }})">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                                <button class="btn btn-outline-info" title="سجل الحضور"
+                                                        onclick="viewAttendance({{ student.id }})">
+                                                    <i class="fas fa-calendar-check"></i>
+                                                </button>
+                                                <button class="btn btn-outline-warning" title="التقارير السلوكية"
+                                                        onclick="viewBehavior({{ student.id }})">
+                                                    <i class="fas fa-clipboard-list"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-user-graduate fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">لا توجد نتائج</h5>
+                        <p class="text-muted">لم يتم العثور على طلاب مطابقين لمعايير البحث</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Student Modal -->
+<div class="modal fade" id="addStudentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-plus me-2"></i>
+                    إضافة طالب جديد
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_student') }}">
+                <div class="modal-body">
+                    {% if form %}
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.student_id.label(class="form-label") }}
+                                {{ form.student_id(class="form-control") }}
+                                {% for error in form.student_id.errors %}
+                                    <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.name.label(class="form-label") }}
+                                {{ form.name(class="form-control") }}
+                                {% for error in form.name.errors %}
+                                    <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.grade.label(class="form-label") }}
+                                {{ form.grade(class="form-control") }}
+                                {% for error in form.grade.errors %}
+                                    <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.class_name.label(class="form-label") }}
+                                {{ form.class_name(class="form-control") }}
+                                {% for error in form.class_name.errors %}
+                                    <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.birth_date.label(class="form-label") }}
+                                {{ form.birth_date(class="form-control") }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.enrollment_date.label(class="form-label") }}
+                                {{ form.enrollment_date(class="form-control") }}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.parent_name.label(class="form-label") }}
+                                {{ form.parent_name(class="form-control") }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.parent_phone.label(class="form-label") }}
+                                {{ form.parent_phone(class="form-control") }}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.address.label(class="form-label") }}
+                            {{ form.address(class="form-control", rows="2") }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check">
+                                {{ form.is_active(class="form-check-input") }}
+                                {{ form.is_active.label(class="form-check-label") }}
+                            </div>
+                        </div>
+                    {% else %}
+                        <!-- Basic form for when form object is not available -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">رقم الطالب</label>
+                                <input type="text" name="student_id" class="form-control" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">اسم الطالب</label>
+                                <input type="text" name="name" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">الصف</label>
+                                <input type="text" name="grade" class="form-control" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">الفصل</label>
+                                <input type="text" name="class_name" class="form-control" required>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>
+                        حفظ
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function viewStudent(studentId) {
+        // Implement student details view
+        alert('عرض تفاصيل الطالب رقم: ' + studentId);
+    }
+    
+    function viewAttendance(studentId) {
+        // Navigate to attendance page with student filter
+        window.location.href = "{{ url_for('attendance') }}?student_id=" + studentId;
+    }
+    
+    function viewBehavior(studentId) {
+        // Navigate to behavior page with student filter
+        window.location.href = "{{ url_for('behavior') }}?student_id=" + studentId;
+    }
+    
+    // Form validation
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('#addStudentModal form');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                const requiredFields = ['student_id', 'name', 'grade', 'class_name'];
+                let isValid = true;
+                
+                requiredFields.forEach(field => {
+                    const input = form.querySelector(`[name="${field}"]`);
+                    if (input && !input.value.trim()) {
+                        isValid = false;
+                        input.classList.add('is-invalid');
+                    } else if (input) {
+                        input.classList.remove('is-invalid');
+                    }
+                });
+                
+                if (!isValid) {
+                    e.preventDefault();
+                    alert('يرجى ملء جميع الحقول المطلوبة');
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

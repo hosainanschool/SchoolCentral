@@ -1,0 +1,358 @@
+{% extends "base.html" %}
+
+{% block title %}التقارير السلوكية - نظام إدارة المدرسة{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4">
+            <i class="fas fa-clipboard-list me-2"></i>
+            التقارير السلوكية
+        </h2>
+    </div>
+</div>
+
+<!-- Add Report and Filters -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-plus me-2"></i>
+                    إضافة تقرير سلوكي
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('add_behavior_report') }}">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="mb-3">
+                        <label class="form-label">اختر الطالب</label>
+                        <select name="student_id" class="form-select" required>
+                            <option value="">-- اختر طالب --</option>
+                            {% for student in students %}
+                                <option value="{{ student.id }}">{{ student.name }} - {{ student.grade }} {{ student.class_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.date.label(class="form-label") }}
+                            {{ form.date(class="form-control") }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form.behavior_type.label(class="form-label") }}
+                            {{ form.behavior_type(class="form-select") }}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.category.label(class="form-label") }}
+                            {{ form.category(class="form-select") }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form.severity.label(class="form-label") }}
+                            {{ form.severity(class="form-select") }}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.description.label(class="form-label") }}
+                        {{ form.description(class="form-control", rows="3") }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.action_taken.label(class="form-label") }}
+                        {{ form.action_taken(class="form-control", rows="2") }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            {{ form.parent_notified(class="form-check-input") }}
+                            {{ form.parent_notified.label(class="form-check-label") }}
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>
+                        حفظ التقرير
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-filter me-2"></i>
+                    تصفية التقارير
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="GET">
+                    <div class="mb-3">
+                        <label class="form-label">الطالب</label>
+                        <select name="student_id" class="form-select">
+                            <option value="">-- جميع الطلاب --</option>
+                            {% for student in students %}
+                                <option value="{{ student.id }}" 
+                                        {% if request.args.get('student_id') == student.id|string %}selected{% endif %}>
+                                    {{ student.name }} - {{ student.grade }} {{ student.class_name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">من تاريخ</label>
+                            <input type="date" name="date_from" class="form-control" 
+                                   value="{{ request.args.get('date_from', '') }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">إلى تاريخ</label>
+                            <input type="date" name="date_to" class="form-control" 
+                                   value="{{ request.args.get('date_to', '') }}">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">نوع السلوك</label>
+                        <select name="behavior_type" class="form-select">
+                            <option value="">-- جميع الأنواع --</option>
+                            <option value="positive" {% if request.args.get('behavior_type') == 'positive' %}selected{% endif %}>إيجابي</option>
+                            <option value="negative" {% if request.args.get('behavior_type') == 'negative' %}selected{% endif %}>سلبي</option>
+                            <option value="neutral" {% if request.args.get('behavior_type') == 'neutral' %}selected{% endif %}>محايد</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-info">
+                        <i class="fas fa-search me-2"></i>
+                        تصفية
+                    </button>
+                    <a href="{{ url_for('behavior') }}" class="btn btn-secondary">
+                        <i class="fas fa-times me-2"></i>
+                        مسح
+                    </a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Summary -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>
+                    ملخص إحصائي
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <h3 class="text-success">{{ reports|selectattr('behavior_type', 'equalto', 'positive')|list|length }}</h3>
+                        <p class="text-muted">تقارير إيجابية</p>
+                    </div>
+                    <div class="col-md-3">
+                        <h3 class="text-danger">{{ reports|selectattr('behavior_type', 'equalto', 'negative')|list|length }}</h3>
+                        <p class="text-muted">تقارير سلبية</p>
+                    </div>
+                    <div class="col-md-3">
+                        <h3 class="text-secondary">{{ reports|selectattr('behavior_type', 'equalto', 'neutral')|list|length }}</h3>
+                        <p class="text-muted">تقارير محايدة</p>
+                    </div>
+                    <div class="col-md-3">
+                        <h3 class="text-primary">{{ reports|length }}</h3>
+                        <p class="text-muted">إجمالي التقارير</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reports List -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-list me-2"></i>
+                    التقارير السلوكية
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if reports %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>التاريخ</th>
+                                    <th>الطالب</th>
+                                    <th>النوع</th>
+                                    <th>التصنيف</th>
+                                    <th>الخطورة</th>
+                                    <th>الوصف</th>
+                                    <th>المعلم</th>
+                                    <th>إبلاغ ولي الأمر</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for report in reports %}
+                                    <tr>
+                                        <td>{{ report.date.strftime('%Y-%m-%d') }}</td>
+                                        <td>
+                                            <strong>{{ report.student.name }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ report.student.grade }} {{ report.student.class_name }}</small>
+                                        </td>
+                                        <td>
+                                            {% if report.behavior_type == 'positive' %}
+                                                <span class="badge bg-success">{{ translate_behavior_type(report.behavior_type) }}</span>
+                                            {% elif report.behavior_type == 'negative' %}
+                                                <span class="badge bg-danger">{{ translate_behavior_type(report.behavior_type) }}</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">{{ translate_behavior_type(report.behavior_type) }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ translate_category(report.category) }}</td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <span class="me-2">{{ report.severity }}</span>
+                                                <div class="progress" style="width: 50px; height: 8px;">
+                                                    <div class="progress-bar 
+                                                        {% if report.severity <= 2 %}bg-success
+                                                        {% elif report.severity <= 3 %}bg-warning
+                                                        {% else %}bg-danger{% endif %}" 
+                                                        style="width: {{ report.severity * 20 }}%"></div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="text-truncate" style="max-width: 200px;" title="{{ report.description }}">
+                                                {{ report.description }}
+                                            </div>
+                                        </td>
+                                        <td>{{ report.teacher.name }}</td>
+                                        <td>
+                                            {% if report.parent_notified %}
+                                                <i class="fas fa-check-circle text-success" title="تم الإبلاغ"></i>
+                                            {% else %}
+                                                <i class="fas fa-times-circle text-danger" title="لم يتم الإبلاغ"></i>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary" 
+                                                    onclick="viewReportDetails({{ report.id }})" 
+                                                    title="عرض التفاصيل">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">لا توجد تقارير سلوكية</h5>
+                        <p class="text-muted">لم يتم العثور على تقارير مطابقة لمعايير البحث</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Report Details Modal -->
+<div class="modal fade" id="reportDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-clipboard-list me-2"></i>
+                    تفاصيل التقرير السلوكي
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="reportDetailsContent">
+                <!-- Content will be loaded dynamically -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function viewReportDetails(reportId) {
+        // Find the report in the current list
+        const reportRow = document.querySelector(`button[onclick="viewReportDetails(${reportId})"]`).closest('tr');
+        const cells = reportRow.querySelectorAll('td');
+        
+        const content = `
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>معلومات أساسية</h6>
+                    <p><strong>التاريخ:</strong> ${cells[0].textContent}</p>
+                    <p><strong>الطالب:</strong> ${cells[1].textContent.trim()}</p>
+                    <p><strong>النوع:</strong> ${cells[2].textContent.trim()}</p>
+                    <p><strong>التصنيف:</strong> ${cells[3].textContent}</p>
+                    <p><strong>الخطورة:</strong> ${cells[4].textContent.trim()}</p>
+                </div>
+                <div class="col-md-6">
+                    <h6>تفاصيل إضافية</h6>
+                    <p><strong>المعلم:</strong> ${cells[6].textContent}</p>
+                    <p><strong>إبلاغ ولي الأمر:</strong> ${cells[7].querySelector('i').classList.contains('fa-check-circle') ? 'نعم' : 'لا'}</p>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-12">
+                    <h6>الوصف</h6>
+                    <p>${cells[5].getAttribute('title') || cells[5].textContent}</p>
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('reportDetailsContent').innerHTML = content;
+        new bootstrap.Modal(document.getElementById('reportDetailsModal')).show();
+    }
+    
+    // Form validation
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('form[action="{{ url_for("add_behavior_report") }}"]');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                const studentSelect = form.querySelector('select[name="student_id"]');
+                const description = form.querySelector('textarea[name="description"]');
+                
+                if (!studentSelect.value) {
+                    e.preventDefault();
+                    alert('يرجى اختيار طالب');
+                    studentSelect.focus();
+                    return;
+                }
+                
+                if (!description.value.trim()) {
+                    e.preventDefault();
+                    alert('يرجى كتابة وصف للسلوك');
+                    description.focus();
+                    return;
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

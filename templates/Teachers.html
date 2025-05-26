@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>قائمة المعلمين</title>
+</head>
+<body>
+    <h1>المعلمون المسجلون</h1>
+    <ul>
+        {% for teacher in teachers %}
+        <li>{{ teacher.username }}</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
