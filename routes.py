@@ -328,7 +328,6 @@ def behavior_chart_data():
     return jsonify(trends)
 
 # Initialize default admin user
-@app.before_first_request
 def create_default_admin():
     """Create default admin user if no teachers exist"""
     if Teacher.query.count() == 0:
@@ -343,6 +342,9 @@ def create_default_admin():
         db.session.add(admin)
         db.session.commit()
         print("تم إنشاء حساب المدير الافتراضي: admin / admin123")
+
+# Call the function to create default admin
+create_default_admin()
 
 # Error handlers
 @app.errorhandler(404)

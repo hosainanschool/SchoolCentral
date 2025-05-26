@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}خطأ في الخادم{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 text-center">
+            <div class="card">
+                <div class="card-body">
+                    <h1 class="display-1 text-muted">500</h1>
+                    <h4 class="card-title">خطأ في الخادم</h4>
+                    <p class="card-text">عذراً، حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى لاحقاً.</p>
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-primary">العودة للرئيسية</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
